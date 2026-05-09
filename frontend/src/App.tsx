@@ -1,282 +1,270 @@
-import { useState, useEffect } from 'react'
-import { MapPin, AlertTriangle, CheckCircle, Phone, ChevronDown, Shield, Users } from 'lucide-react'
-import axios from 'axios'
+import { useState, useEffect, useCallback } from 'react'
+import { GoogleOAuthProvider } from '@react-oauth/google'
+import { Home, MapPin, Settings, Star, MessageCircle } from 'lucide-react'
 
-type RiskLevel = 'SAFE' | 'CAUTION' | 'DANGER'
+import { SafetyTab } from './tabs/SafetyTab'
+import { ZonesTab } from './tabs/ZonesTab'
+import { ChatTab } from './tabs/ChatTab'
+import { SettingsTab } from './tabs/SettingsTab'
+import { CreditsTab } from './tabs/CreditsTab'
+import { LoginScreen } from './components/LoginScreen'
+import { OnboardingScreen } from './components/OnboardingScreen'
 
-interface RiskData {
-  risk_level: RiskLevel
-  score: number
-  decision: string
-  weather: {
-    rainfall_mm: number
-    humidity_pct: number
-    wind_speed_kmh: number
-    temp_c: number
-    condition: string
+export type RiskLevel = 'SAFE' | 'CAUTION' | 'DANGER'
+export type Theme = 'light' | 'dark'
+export type WeatherState = 'default' | 'rain' | 'storm' | 'clear' | 'clouds' | 'hot' | 'mist' | 'snow'
+
+export interface WeatherData {
+  rainfall_mm: number; humidity_pct: number; wind_speed_kmh: number;
+  temp_c: number; condition: string; description?: string; feels_like?: number;
+}
+export interface RiskData {
+  risk_level: RiskLevel; score: number; decision: string;
+  weather: WeatherData; elevation_m: number;
+  historical_risk?: boolean;
+  historical_details?: { zone_name?: string; nearest_zone?: string; distance_km?: number }
+  nearby_zones?: { zone_name: string; risk_type: string; distance_km: number }[]
+}
+export interface HelplineData {
+  country: string; emergency: string; disaster: string;
+  disaster_name?: string; ambulance?: string; police?: string; fire?: string;
+}
+export interface UserConfig {
+  kids_present: boolean; elderly_present: boolean; city: string; country: string;
+}
+export interface GoogleUser {
+  name: string; email: string; picture: string; sub: string;
+}
+
+type Tab = 'safety' | 'zones' | 'chat' | 'settings' | 'credits'
+
+// ── Map OpenWeatherMap condition → palette key ─────────────────────
+function getWeatherState(condition: string, tempC: number): WeatherState {
+  const c = condition.toLowerCase()
+  if (c.includes('thunderstorm'))                                        return 'storm'
+  if (c.includes('snow') || c.includes('sleet') || c.includes('hail')) return 'snow'
+  if (c.includes('rain') || c.includes('drizzle'))                      return 'rain'
+  if (c.includes('mist') || c.includes('fog') || c.includes('haze') ||
+      c.includes('smoke') || c.includes('dust') || c.includes('sand'))  return 'mist'
+  if (c.includes('cloud') || c.includes('overcast'))                    return 'clouds'
+  if (c.includes('clear'))                                              return tempC >= 34 ? 'hot' : 'clear'
+  return 'default'
+}
+
+// ── Weather emoji for badge ────────────────────────────────────────
+export function getWeatherEmoji(state: WeatherState, condition: string): string {
+  const emojiMap: Record<WeatherState, string> = {
+    rain:    '🌧️',
+    storm:   '⛈️',
+    clear:   '☀️',
+    clouds:  '☁️',
+    hot:     '🌡️',
+    mist:    '🌫️',
+    snow:    '❄️',
+    default: '🌤️',
   }
-  elevation_m: number
+  return emojiMap[state] ?? '🌤️'
 }
 
-interface UserConfig {
-  kids_present: boolean
-  elderly_present: boolean
-  city: string
-}
+function AppInner() {
+  const [tab, setTab]           = useState<Tab>('safety')
+  const [theme, setTheme]       = useState<Theme>(() => (localStorage.getItem('raksha_theme') as Theme) || 'light')
+  const [user, setUser]         = useState<GoogleUser | null>(null)
+  const [config, setConfig]     = useState<UserConfig | null>(null)
+  const [riskData, setRiskData] = useState<RiskData | null>(null)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [weatherState, setWeatherState] = useState<WeatherState>('default')
 
-function App() {
-  const [config, setConfig] = useState<UserConfig | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<RiskData | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(false)
+  const applyDynamicColor = (score: number, currentTheme: Theme) => {
+    const isDark = currentTheme === 'dark'
+    // Score 0 -> Green (120), Score 10 -> Red (0)
+    const h = Math.max(0, 120 - (score * 12))
+    
+    const pL = isDark ? 70 : 35
+    const pcL = isDark ? 20 : 90
+    const onPL = isDark ? 10 : 100
+    const onPcL = isDark ? 90 : 10
+    
+    const root = document.documentElement
+    root.style.setProperty('--md-primary', `hsl(${h}, 75%, ${pL}%)`)
+    root.style.setProperty('--md-on-primary', `hsl(${h}, 100%, ${onPL}%)`)
+    root.style.setProperty('--md-primary-container', `hsl(${h}, 80%, ${pcL}%)`)
+    root.style.setProperty('--md-on-primary-container', `hsl(${h}, 100%, ${onPcL}%)`)
+    
+    // Subtle surface tinting
+    root.style.setProperty('--md-surface', `hsl(${h}, 20%, ${isDark ? 12 : 98}%)`)
+    root.style.setProperty('--md-surface-container-low', `hsl(${h}, 25%, ${isDark ? 12 : 97}%)`)
+    root.style.setProperty('--md-surface-container', `hsl(${h}, 25%, ${isDark ? 15 : 95}%)`)
+    root.style.setProperty('--md-surface-container-high', `hsl(${h}, 25%, ${isDark ? 18 : 93}%)`)
+  }
 
+  // Apply theme to DOM
   useEffect(() => {
-    const saved = localStorage.getItem('raksha_config')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      setConfig(parsed)
-      fetchRisk(parsed)
-    } else {
-      setLoading(false)
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('raksha_theme', theme)
+    if (riskData) {
+      applyDynamicColor(riskData.score, theme)
     }
-  }, [])
+  }, [theme, riskData])
 
-  const fetchRisk = async (userConfig: UserConfig) => {
-    setLoading(true)
-    try {
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude, longitude } = pos.coords
-        await getRiskData(latitude, longitude, userConfig)
-      }, () => {
-        // Fallback to Delhi if geo fails
-        getRiskData(28.6139, 77.2090, userConfig)
-      })
-    } catch (err) {
-      setError('Could not connect to server.')
-      setLoading(false)
+  // Apply risk palette to DOM whenever risk data changes
+  useEffect(() => {
+    if (riskData) {
+      document.documentElement.setAttribute('data-risk', riskData.risk_level.toLowerCase())
+      applyDynamicColor(riskData.score, theme)
+      
+      if (riskData.weather) {
+        const state = getWeatherState(riskData.weather.condition, riskData.weather.temp_c)
+        setWeatherState(state)
+      }
     }
-  }
+  }, [riskData, theme])
 
-  const getRiskData = async (lat: number, lon: number, userConfig: UserConfig) => {
-    try {
-      const res = await axios.post('/api/risk', {
-        lat,
-        lon,
-        kids_present: userConfig.kids_present,
-        elderly_present: userConfig.elderly_present
-      })
-      setData(res.data)
-      localStorage.setItem('raksha_last_data', JSON.stringify(res.data))
-      setLoading(false)
-    } catch (err) {
+  // Restore session
+  useEffect(() => {
+    const u = localStorage.getItem('raksha_user')
+    const c = localStorage.getItem('raksha_config')
+    if (u) setUser(JSON.parse(u))
+    if (c) {
+      const cfg = JSON.parse(c)
+      setConfig(cfg)
       const cached = localStorage.getItem('raksha_last_data')
       if (cached) {
-        setData(JSON.parse(cached))
-        setError('offline')
-      } else {
-        setError('Could not fetch risk data.')
+        const d = JSON.parse(cached)
+        setRiskData(d)
+        if (d.weather) {
+          const state = getWeatherState(d.weather.condition, d.weather.temp_c)
+          setWeatherState(state)
+        }
+        document.documentElement.setAttribute('data-risk', d.risk_level.toLowerCase())
+        applyDynamicColor(d.score, theme)
+        
+        const t = localStorage.getItem('raksha_last_updated')
+        if (t) setLastUpdated(new Date(t))
       }
+      fetchRisk(cfg)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const getRiskData = async (lat: number, lon: number, cfg: UserConfig) => {
+    try {
+      const res = await fetch('/api/risk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon, ...cfg })
+      })
+      if (!res.ok) throw new Error('API error')
+      const data: RiskData = await res.json()
+      setRiskData(data)
+      setLastUpdated(new Date())
+      setError(null)
+      localStorage.setItem('raksha_last_data', JSON.stringify(data))
+      localStorage.setItem('raksha_last_updated', new Date().toISOString())
+    } catch {
+      const cached = localStorage.getItem('raksha_last_data')
+      if (cached) { setRiskData(JSON.parse(cached)); setError('offline') }
+      else setError('Could not connect. Check your connection.')
+    } finally {
       setLoading(false)
     }
   }
 
-  const handleOnboarding = (newConfig: UserConfig) => {
-    localStorage.setItem('raksha_config', JSON.stringify(newConfig))
-    setConfig(newConfig)
-    fetchRisk(newConfig)
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-16 h-16 bg-slate-700 rounded-full mb-4"></div>
-          <p className="text-slate-400 font-medium">Checking your area...</p>
-        </div>
-      </div>
+  const fetchRisk = useCallback(async (cfg: UserConfig) => {
+    setLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      pos => getRiskData(pos.coords.latitude, pos.coords.longitude, cfg),
+      ()  => getRiskData(20.5937, 78.9629, cfg)
     )
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  if (!config) {
-    return <Onboarding onComplete={handleOnboarding} />
+  const handleLogin    = (u: GoogleUser) => { setUser(u); localStorage.setItem('raksha_user', JSON.stringify(u)) }
+  const handleOnboard  = (cfg: UserConfig) => { setConfig(cfg); localStorage.setItem('raksha_config', JSON.stringify(cfg)); fetchRisk(cfg) }
+  const handleLogout   = () => {
+    ['raksha_user','raksha_config','raksha_last_data','raksha_last_updated'].forEach(k => localStorage.removeItem(k))
+    setUser(null); setConfig(null); setRiskData(null); setTab('safety')
+    setWeatherState('default')
+    document.documentElement.removeAttribute('data-weather')
+    document.documentElement.removeAttribute('data-risk')
+    const root = document.documentElement
+    root.style.removeProperty('--md-primary')
+    root.style.removeProperty('--md-on-primary')
+    root.style.removeProperty('--md-primary-container')
+    root.style.removeProperty('--md-on-primary-container')
+    root.style.removeProperty('--md-surface')
+    root.style.removeProperty('--md-surface-container-low')
+    root.style.removeProperty('--md-surface-container')
+    root.style.removeProperty('--md-surface-container-high')
   }
+  const handleUpdate   = (cfg: UserConfig) => { setConfig(cfg); localStorage.setItem('raksha_config', JSON.stringify(cfg)); fetchRisk(cfg) }
+  const toggleTheme    = () => setTheme(t => t === 'light' ? 'dark' : 'light')
 
-  if (error && error !== 'offline' && !data) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-900 text-center">
-        <AlertTriangle className="text-yellow-500 w-12 h-12 mb-4" />
-        <p className="text-white font-bold text-xl mb-2">Something went wrong</p>
-        <p className="text-slate-500 text-sm mb-6 max-w-xs">{error}</p>
-        <button 
-          onClick={() => fetchRisk(config)}
-          className="bg-slate-700 text-white px-6 py-3 rounded-xl font-medium"
-        >
-          Try Again
-        </button>
-      </div>
-    )
-  }
+  if (!user)   return <LoginScreen onLogin={handleLogin} theme={theme} />
+  if (!config) return <OnboardingScreen user={user} onComplete={handleOnboard} />
 
-  const getTheme = () => {
-    if (!data) return { bg: 'bg-slate-700', text: 'text-white', icon: <AlertTriangle /> }
-    switch(data.risk_level) {
-      case 'DANGER': return { bg: 'bg-red-600', text: 'text-white', icon: <AlertTriangle /> }
-      case 'CAUTION': return { bg: 'bg-yellow-500', text: 'text-white', icon: <AlertTriangle /> }
-      default: return { bg: 'bg-green-600', text: 'text-white', icon: <CheckCircle /> }
-    }
-  }
+  const navItems: { id: Tab; icon: typeof Home; label: string }[] = [
+    { id: 'safety',   icon: Home,            label: 'Safety'   },
+    { id: 'zones',    icon: MapPin,          label: 'Zones'    },
+    { id: 'chat',     icon: MessageCircle,   label: 'Chat'     },
+    { id: 'settings', icon: Settings,        label: 'Settings' },
+    { id: 'credits',  icon: Star,            label: 'Credits'  },
+  ]
 
-  const theme = getTheme()
+  const weatherEmoji  = getWeatherEmoji(weatherState, riskData?.weather?.condition ?? '')
+  const weatherLabel  = riskData?.weather?.condition
+    ? `${weatherEmoji} ${riskData.weather.condition}`
+    : null
 
   return (
-    <div className="min-h-screen max-w-[390px] mx-auto bg-slate-900 text-white p-6 flex flex-col overflow-x-hidden">
-      <header className="flex justify-between items-center mb-8">
-        <div>
-          <div className="flex items-center text-slate-400 text-sm mb-1">
-            <MapPin size={14} className="mr-1" />
-            <span>{config.city || 'Your Location'}</span>
-          </div>
-          <h2 className="font-bold text-lg uppercase tracking-tight">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long' })}, {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-          </h2>
-        </div>
-        {error === 'offline' && (
-          <div className="bg-yellow-500/20 text-yellow-500 text-[10px] font-bold px-2 py-1 rounded-full uppercase">
-            Offline Mode
-          </div>
+    <div className="app-shell">
+      {/* Top app bar */}
+      <header className="md-top-bar">
+        <span className="md-title-large" style={{ flex: 1, fontWeight: 500 }}>Raksha</span>
+        {weatherLabel && (
+          <span className="weather-badge" style={{ marginRight: 8 }}>
+            {weatherLabel}
+          </span>
         )}
+        {error === 'offline' && (
+          <span className="md-chip md-chip-assist md-label-small" style={{ marginRight: 8 }}>Offline</span>
+        )}
+        {user.picture
+          ? <img src={user.picture} alt={user.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+          : <div className="md-avatar" style={{ width: 36, height: 36, fontSize: 14 }}>{user.name?.[0]}</div>
+        }
       </header>
 
-      {data && (
-        <main className="flex-grow">
-          <div className={`${theme.bg} rounded-3xl p-8 mb-8 shadow-2xl transition-all`}>
-            <div className="flex items-center gap-3 mb-4">
-              {theme.icon}
-              <span className="font-black text-2xl tracking-tight uppercase">
-                {data.risk_level === 'SAFE' ? 'Safe' : data.risk_level === 'CAUTION' ? 'Caution' : 'Stay Home'}
-              </span>
+      {/* Tab content */}
+      <main className="tab-content">
+        {tab === 'safety'   && <SafetyTab config={config} riskData={riskData} loading={loading} error={error} lastUpdated={lastUpdated} onRefresh={() => fetchRisk(config)} />}
+        {tab === 'zones'    && <ZonesTab riskData={riskData} config={config} />}
+        {tab === 'chat'     && <ChatTab />}
+        {tab === 'settings' && <SettingsTab user={user} config={config} theme={theme} onUpdate={handleUpdate} onLogout={handleLogout} onToggleTheme={toggleTheme} />}
+        {tab === 'credits'  && <CreditsTab />}
+      </main>
+
+      {/* Bottom nav */}
+      <nav className="md-nav-bar">
+        {navItems.map(({ id, icon: Icon, label }) => (
+          <button key={id} className={`md-nav-item ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>
+            <div className="md-nav-indicator">
+              <Icon size={22} strokeWidth={tab === id ? 2.5 : 1.8} />
             </div>
-            <h1 className="text-3xl font-black leading-tight">
-              {data.risk_level === 'DANGER' ? 'HIGH FLOOD RISK' : data.risk_level === 'CAUTION' ? 'MODERATE RISK' : 'LOOKS CLEAR TODAY'}
-            </h1>
-          </div>
-
-          <p className="text-xl font-medium leading-relaxed mb-8">
-            {data.decision}
-          </p>
-
-          <button 
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-2 text-slate-400 font-bold mb-4 min-h-[48px]"
-          >
-            Why? <ChevronDown size={18} className={expanded ? 'rotate-180' : ''} />
+            <span className="md-nav-label">{label}</span>
           </button>
-
-          {expanded && (
-            <div className="bg-slate-800 rounded-2xl p-6 mb-8 grid grid-cols-2 gap-4">
-              <div className="flex flex-col">
-                <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Rainfall</span>
-                <span className="text-lg font-bold">{data.weather.rainfall_mm}mm</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Elevation</span>
-                <span className="text-lg font-bold">{data.elevation_m}m</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Risk Score</span>
-                <span className="text-lg font-bold">{data.score.toFixed(1)}/10</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Wind</span>
-                <span className="text-lg font-bold">{data.weather.wind_speed_kmh.toFixed(1)} km/h</span>
-              </div>
-            </div>
-          )}
-        </main>
-      )}
-
-      <footer className="mt-auto pt-6 flex flex-col gap-4">
-        <div className="flex gap-4">
-          <button className="flex-1 bg-green-600/20 text-green-500 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 min-h-[48px] border border-green-600/30">
-            <CheckCircle size={18} /> I'm Safe
-          </button>
-          <button className="flex-1 bg-slate-800 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 min-h-[48px]">
-            <Phone size={18} /> Helpline
-          </button>
-        </div>
-        <p className="text-[10px] text-slate-600 text-center font-medium tracking-widest uppercase pb-2">
-          Made for WeatherWise Hack
-        </p>
-      </footer>
+        ))}
+      </nav>
     </div>
   )
 }
 
-function Onboarding({ onComplete }: { onComplete: (config: UserConfig) => void }) {
-  const [city, setCity] = useState('')
-  const [kids, setKids] = useState(false)
-  const [elderly, setElderly] = useState(false)
-
+export default function App() {
   return (
-    <div className="min-h-screen max-w-[390px] mx-auto bg-slate-900 text-white p-8 flex flex-col justify-center overflow-x-hidden">
-      <div className="mb-12">
-        <Shield size={48} className="text-green-500 mb-6" />
-        <h1 className="text-4xl font-black tracking-tight mb-4">Raksha</h1>
-        <p className="text-slate-400 text-lg leading-relaxed">
-          One daily safety decision. Hyperlocal, profile-aware, radical simplicity.
-        </p>
-      </div>
-
-      <div className="space-y-8 mb-12">
-        <div>
-          <label className="block text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">Your City</label>
-          <input 
-            type="text" 
-            placeholder="e.g. Manila, Philippines"
-            className="w-full bg-slate-800 border-none rounded-2xl p-4 text-white placeholder-slate-600 font-bold focus:ring-2 focus:ring-green-500 transition-all outline-none"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="block text-slate-500 text-xs font-bold uppercase tracking-widest mb-4">Family Profile</label>
-          <div className="space-y-3">
-            <button 
-              onClick={() => setKids(!kids)}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl font-bold transition-all min-h-[48px] ${kids ? 'bg-green-600 text-white' : 'bg-slate-800 text-slate-400'}`}
-            >
-              <div className="flex items-center gap-3">
-                <Users size={20} />
-                <span>Kids present</span>
-              </div>
-              <div className={`w-5 h-5 rounded-full border-2 ${kids ? 'bg-white border-white' : 'border-slate-600'}`}></div>
-            </button>
-
-            <button 
-              onClick={() => setElderly(!elderly)}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl font-bold transition-all min-h-[48px] ${elderly ? 'bg-green-600 text-white' : 'bg-slate-800 text-slate-400'}`}
-            >
-              <div className="flex items-center gap-3">
-                <Users size={20} />
-                <span>Elderly present</span>
-              </div>
-              <div className={`w-5 h-5 rounded-full border-2 ${elderly ? 'bg-white border-white' : 'border-slate-600'}`}></div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <button 
-        disabled={!city}
-        onClick={() => onComplete({ city, kids_present: kids, elderly_present: elderly })}
-        className="w-full bg-green-600 disabled:opacity-50 disabled:bg-slate-800 py-5 rounded-3xl font-black text-xl shadow-xl active:scale-[0.98] transition-all min-h-[48px]"
-      >
-        Protect My Family
-      </button>
-    </div>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+      <AppInner />
+    </GoogleOAuthProvider>
   )
 }
-
-export default App

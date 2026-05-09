@@ -16,11 +16,22 @@ class AlertLog(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
     lat = Column(Float)
     lon = Column(Float)
+    country = Column(String, default="")
     risk_level = Column(String)
     score = Column(Float)
     decision = Column(String)
     kids_present = Column(Boolean)
     elderly_present = Column(Boolean)
+    historical_zone = Column(String, default="")
+
+class SafeConfirmation(Base):
+    __tablename__ = "safe_confirmations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    lat = Column(Float)
+    lon = Column(Float)
+    city = Column(String, default="")
 
 def init_db():
     Base.metadata.create_all(bind=engine)

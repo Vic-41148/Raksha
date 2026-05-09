@@ -1,6 +1,887 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700&display=swap');
 @import "tailwindcss";
 
-body {
-  @apply bg-slate-900 text-white overflow-x-hidden;
-  font-family: 'Inter', sans-serif;
+/* ── M3 Light Theme ─────────────────────────────────────────────── */
+:root, [data-theme="light"] {
+  --md-primary: #1B6B3A;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #A8F2C0;
+  --md-on-primary-container: #002110;
+
+  --md-secondary: #4E6355;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #D0E8D7;
+  --md-on-secondary-container: #0B1F12;
+
+  --md-tertiary: #3B6470;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #BEEAF7;
+  --md-on-tertiary-container: #001F27;
+
+  --md-error: #BA1A1A;
+  --md-on-error: #FFFFFF;
+  --md-error-container: #FFDAD6;
+  --md-on-error-container: #410002;
+
+  --md-caution: #7A4F00;
+  --md-on-caution: #FFFFFF;
+  --md-caution-container: #FFDEAA;
+  --md-on-caution-container: #261700;
+
+  --md-surface: #F6FBF4;
+  --md-on-surface: #191C1A;
+  --md-surface-variant: #DBE5DB;
+  --md-on-surface-variant: #404943;
+
+  --md-outline: #707973;
+  --md-outline-variant: #BFC9BF;
+
+  --md-scrim: rgba(0,0,0,0.32);
+
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F0F5EE;
+  --md-surface-container: #EAF0E8;
+  --md-surface-container-high: #E4EAE2;
+  --md-surface-container-highest: #DEE4DC;
+
+  --md-inverse-surface: #2E312F;
+  --md-inverse-on-surface: #EFF1ED;
+  --md-inverse-primary: #6FD89A;
+
+  --md-shadow: rgba(0,0,0,0.12);
+  --md-elevation-1: 0 1px 2px var(--md-shadow), 0 1px 3px 1px var(--md-shadow);
+  --md-elevation-2: 0 1px 2px var(--md-shadow), 0 2px 6px 2px var(--md-shadow);
+  --md-elevation-3: 0 4px 8px 3px var(--md-shadow), 0 1px 3px var(--md-shadow);
+
+  /* nav bar — references other tokens, auto-adapts to weather/theme */
+  --md-nav-bg: var(--md-surface-container);
+  --md-nav-indicator: var(--md-secondary-container);
+  --md-nav-icon-active: var(--md-on-secondary-container);
+  --md-nav-icon-inactive: var(--md-on-surface-variant);
+
+  color-scheme: light;
 }
+
+/* ── M3 Dark Theme ──────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --md-primary: #6FD89A;
+  --md-on-primary: #003919;
+  --md-primary-container: #005228;
+  --md-on-primary-container: #8CF5B3;
+
+  --md-secondary: #B5CCB9;
+  --md-on-secondary: #203528;
+  --md-secondary-container: #364B3E;
+  --md-on-secondary-container: #D0E8D7;
+
+  --md-tertiary: #A2CDD8;
+  --md-on-tertiary: #01353F;
+  --md-tertiary-container: #1B4C57;
+  --md-on-tertiary-container: #BEEAF7;
+
+  --md-error: #FFB4AB;
+  --md-on-error: #690005;
+  --md-error-container: #93000A;
+  --md-on-error-container: #FFDAD6;
+
+  --md-caution: #FFB951;
+  --md-on-caution: #412D00;
+  --md-caution-container: #5C4100;
+  --md-on-caution-container: #FFDEAA;
+
+  --md-surface: #191C1A;
+  --md-on-surface: #E1E3DF;
+  --md-surface-variant: #404943;
+  --md-on-surface-variant: #BFC9BF;
+
+  --md-outline: #899389;
+  --md-outline-variant: #404943;
+
+  --md-scrim: rgba(0,0,0,0.6);
+
+  --md-surface-container-lowest: #0E110F;
+  --md-surface-container-low: #191C1A;
+  --md-surface-container: #1D201E;
+  --md-surface-container-high: #272B28;
+  --md-surface-container-highest: #323632;
+
+  --md-inverse-surface: #E1E3DF;
+  --md-inverse-on-surface: #2E312F;
+  --md-inverse-primary: #1B6B3A;
+
+  --md-shadow: rgba(0,0,0,0.3);
+  --md-elevation-1: 0 1px 2px var(--md-shadow), 0 1px 3px 1px var(--md-shadow);
+  --md-elevation-2: 0 1px 2px var(--md-shadow), 0 2px 6px 2px var(--md-shadow);
+  --md-elevation-3: 0 4px 8px 3px var(--md-shadow), 0 1px 3px var(--md-shadow);
+
+  color-scheme: dark;
+}
+
+/* ── Base ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overscroll-behavior: none; }
+
+body {
+  margin: 0;
+  background-color: var(--md-surface);
+  color: var(--md-on-surface);
+  font-family: 'Roboto', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ── M3 Typography Scale ─────────────────────────────────────────── */
+.md-display-large  { font-size: 57px; line-height: 64px; letter-spacing: -0.25px; font-weight: 400; }
+.md-display-medium { font-size: 45px; line-height: 52px; letter-spacing: 0; font-weight: 400; }
+.md-display-small  { font-size: 36px; line-height: 44px; letter-spacing: 0; font-weight: 400; }
+.md-headline-large  { font-size: 32px; line-height: 40px; letter-spacing: 0; font-weight: 400; }
+.md-headline-medium { font-size: 28px; line-height: 36px; letter-spacing: 0; font-weight: 400; }
+.md-headline-small  { font-size: 24px; line-height: 32px; letter-spacing: 0; font-weight: 400; }
+.md-title-large  { font-size: 22px; line-height: 28px; letter-spacing: 0; font-weight: 400; }
+.md-title-medium { font-size: 16px; line-height: 24px; letter-spacing: 0.15px; font-weight: 500; }
+.md-title-small  { font-size: 14px; line-height: 20px; letter-spacing: 0.1px; font-weight: 500; }
+.md-body-large   { font-size: 16px; line-height: 24px; letter-spacing: 0.5px; font-weight: 400; }
+.md-body-medium  { font-size: 14px; line-height: 20px; letter-spacing: 0.25px; font-weight: 400; }
+.md-body-small   { font-size: 12px; line-height: 16px; letter-spacing: 0.4px; font-weight: 400; }
+.md-label-large  { font-size: 14px; line-height: 20px; letter-spacing: 0.1px; font-weight: 500; }
+.md-label-medium { font-size: 12px; line-height: 16px; letter-spacing: 0.5px; font-weight: 500; }
+.md-label-small  { font-size: 11px; line-height: 16px; letter-spacing: 0.5px; font-weight: 500; }
+
+/* ── M3 Shapes ───────────────────────────────────────────────────── */
+.shape-none  { border-radius: 0; }
+.shape-xs    { border-radius: 4px; }
+.shape-sm    { border-radius: 8px; }
+.shape-md    { border-radius: 12px; }
+.shape-lg    { border-radius: 16px; }
+.shape-xl    { border-radius: 28px; }
+.shape-full  { border-radius: 999px; }
+
+/* ── M3 Cards ────────────────────────────────────────────────────── */
+.md-card-filled {
+  background: var(--md-surface-container-high);
+  border-radius: 12px;
+  border: none;
+}
+.md-card-elevated {
+  background: var(--md-surface-container-low);
+  border-radius: 12px;
+  box-shadow: var(--md-elevation-1);
+}
+.md-card-outlined {
+  background: var(--md-surface);
+  border-radius: 12px;
+  border: 1px solid var(--md-outline-variant);
+}
+
+/* ── M3 Buttons ──────────────────────────────────────────────────── */
+.md-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 10px 24px; border: none; cursor: pointer;
+  font-family: inherit; font-weight: 500; font-size: 14px;
+  letter-spacing: 0.1px; line-height: 20px;
+  border-radius: 999px; transition: box-shadow 0.2s, opacity 0.15s;
+  position: relative; overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 40px;
+}
+.md-btn::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0; transition: opacity 0.15s;
+  pointer-events: none;
+}
+.md-btn:hover::after   { opacity: 0.08; }
+.md-btn:active::after  { opacity: 0.12; }
+.md-btn:disabled { opacity: 0.38; pointer-events: none; }
+
+.md-btn-filled {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+.md-btn-filled:hover { box-shadow: var(--md-elevation-1); }
+
+.md-btn-tonal {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+.md-btn-tonal:hover { box-shadow: var(--md-elevation-1); }
+
+.md-btn-outlined {
+  background: transparent;
+  color: var(--md-primary);
+  border: 1px solid var(--md-outline);
+}
+
+.md-btn-text {
+  background: transparent;
+  color: var(--md-primary);
+  padding: 10px 12px;
+}
+
+.md-btn-error {
+  background: var(--md-error-container);
+  color: var(--md-on-error-container);
+}
+
+.md-btn-lg { padding: 16px 32px; font-size: 16px; min-height: 56px; }
+
+/* ── M3 Icon Button ──────────────────────────────────────────────── */
+.md-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 999px; border: none;
+  background: transparent; color: var(--md-on-surface-variant);
+  cursor: pointer; transition: background 0.15s;
+  position: relative; overflow: hidden;
+}
+.md-icon-btn::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0; transition: opacity 0.15s;
+}
+.md-icon-btn:hover::after { opacity: 0.08; }
+.md-icon-btn:active::after { opacity: 0.12; }
+
+/* ── M3 Navigation Bar ───────────────────────────────────────────── */
+.md-nav-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  background: var(--md-nav-bg);
+  display: flex; align-items: center;
+  padding: 12px 8px calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 100;
+  border-top: 1px solid var(--md-outline-variant);
+}
+.md-nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 4px; background: transparent; border: none; cursor: pointer;
+  color: var(--md-nav-icon-inactive); padding: 0; min-height: 56px;
+  justify-content: center;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+.md-nav-item.active { color: var(--md-nav-icon-active); }
+.md-nav-indicator {
+  width: 64px; height: 32px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.25s cubic-bezier(0.2,0,0,1);
+}
+.md-nav-item.active .md-nav-indicator {
+  background: var(--md-nav-indicator);
+}
+.md-nav-label {
+  font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
+  line-height: 16px;
+}
+
+/* ── M3 Top App Bar ──────────────────────────────────────────────── */
+.md-top-bar {
+  position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px; height: 64px;
+  background: var(--md-surface-container);
+  display: flex; align-items: center; padding: 0 4px 0 16px;
+  z-index: 90;
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+/* ── M3 Text Field (Outlined) ────────────────────────────────────── */
+.md-field {
+  position: relative; width: 100%;
+}
+.md-field-input {
+  width: 100%; padding: 16px 16px 16px;
+  background: transparent;
+  border: 1px solid var(--md-outline);
+  border-radius: 4px;
+  color: var(--md-on-surface);
+  font-family: inherit; font-size: 16px; line-height: 24px;
+  outline: none; transition: border-color 0.2s;
+}
+.md-field-input::placeholder { color: var(--md-on-surface-variant); opacity: 1; }
+.md-field-input:focus { border-color: var(--md-primary); border-width: 2px; }
+.md-field-label {
+  display: block; margin-bottom: 6px;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
+  color: var(--md-on-surface-variant);
+}
+.md-field-input:focus ~ .md-field-label { color: var(--md-primary); }
+
+/* ── M3 Switch ───────────────────────────────────────────────────── */
+.md-switch {
+  position: relative; width: 52px; height: 32px; cursor: pointer;
+  flex-shrink: 0;
+}
+.md-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.md-switch-track {
+  position: absolute; inset: 0; border-radius: 999px;
+  background: var(--md-surface-variant);
+  border: 2px solid var(--md-outline);
+  transition: background 0.2s, border-color 0.2s;
+}
+.md-switch input:checked ~ .md-switch-track {
+  background: var(--md-primary);
+  border-color: var(--md-primary);
+}
+.md-switch-thumb {
+  position: absolute; top: 50%; left: 6px;
+  transform: translateY(-50%);
+  width: 16px; height: 16px; border-radius: 999px;
+  background: var(--md-outline);
+  transition: left 0.2s cubic-bezier(0.2,0,0,1), width 0.1s, background 0.2s;
+}
+.md-switch input:checked ~ .md-switch-track ~ .md-switch-thumb,
+.md-switch input:checked + .md-switch-track + .md-switch-thumb {
+  left: 28px; background: var(--md-on-primary); width: 24px;
+  top: 50%; transform: translate(-8px, -50%);
+}
+.md-switch:active .md-switch-thumb { width: 28px; }
+
+/* ── M3 List Item ────────────────────────────────────────────────── */
+.md-list-item {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px;
+  position: relative; overflow: hidden;
+  min-height: 56px;
+}
+.md-list-item::after {
+  content: ''; position: absolute; inset: 0;
+  background: var(--md-on-surface); opacity: 0;
+  transition: opacity 0.15s; pointer-events: none;
+}
+.md-list-item:active::after { opacity: 0.12; }
+.md-divider { height: 1px; background: var(--md-outline-variant); margin: 0; }
+
+/* ── M3 Chip ─────────────────────────────────────────────────────── */
+.md-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 16px; border-radius: 8px;
+  border: 1px solid var(--md-outline);
+  background: transparent;
+  font-size: 14px; font-weight: 500; letter-spacing: 0.1px;
+  color: var(--md-on-surface);
+  white-space: nowrap;
+}
+.md-chip-assist {
+  background: var(--md-surface-container-low);
+  border-color: var(--md-outline-variant);
+}
+
+/* ── App Shell ───────────────────────────────────────────────────── */
+.app-shell {
+  max-width: 430px; margin: 0 auto;
+  min-height: 100dvh; display: flex; flex-direction: column;
+  background: var(--md-surface);
+  position: relative;
+}
+.tab-content {
+  flex: 1; overflow-y: auto;
+  padding-top: 64px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Risk State Colors ───────────────────────────────────────────── */
+.risk-safe    { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.risk-caution { background: var(--md-caution-container); color: var(--md-on-caution-container); }
+.risk-danger  { background: var(--md-error-container);   color: var(--md-on-error-container); }
+
+.risk-chip-safe    { background: var(--md-primary-container); color: var(--md-on-primary-container); border: none; }
+.risk-chip-caution { background: var(--md-caution-container); color: var(--md-on-caution-container); border: none; }
+.risk-chip-danger  { background: var(--md-error-container);   color: var(--md-on-error-container);   border: none; }
+
+/* ── Score Ring ──────────────────────────────────────────────────── */
+.score-ring-bg   { stroke: var(--md-outline-variant); }
+.score-ring-fill {
+  stroke-linecap: round;
+  transform: rotate(-90deg); transform-origin: center;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Animations ──────────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes fadeIn    { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp   {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -300px 0; }
+  100% { background-position:  300px 0; }
+}
+@keyframes successPop {
+  0% { transform: scale(1); } 40% { transform: scale(1.15); } 100% { transform: scale(1); }
+}
+@keyframes navPop {
+  0% { transform: scale(1); } 50% { transform: scale(0.88); } 100% { transform: scale(1); }
+}
+
+.anim-fade-up  { animation: fadeInUp 0.4s cubic-bezier(0.4,0,0.2,1) both; }
+.anim-fade-in  { animation: fadeIn 0.3s ease both; }
+.anim-slide-up { animation: slideUp 0.4s cubic-bezier(0.4,0,0.2,1) both; }
+.anim-success  { animation: successPop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+
+.d-50  { animation-delay: 50ms; }
+.d-100 { animation-delay: 100ms; }
+.d-150 { animation-delay: 150ms; }
+.d-200 { animation-delay: 200ms; }
+.d-300 { animation-delay: 300ms; }
+.d-400 { animation-delay: 400ms; }
+
+/* ── Skeleton ────────────────────────────────────────────────────── */
+.md-skeleton {
+  background: linear-gradient(90deg,
+    var(--md-surface-container) 25%,
+    var(--md-surface-container-high) 50%,
+    var(--md-surface-container) 75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+/* ── Bottom Sheet ────────────────────────────────────────────────── */
+.md-scrim-overlay {
+  position: fixed; inset: 0; background: var(--md-scrim); z-index: 200;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.md-bottom-sheet {
+  width: 100%; max-width: 430px;
+  background: var(--md-surface-container-low);
+  border-radius: 28px 28px 0 0;
+  padding: 24px 24px calc(32px + env(safe-area-inset-bottom, 0px));
+  animation: slideUp 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.md-drag-handle {
+  width: 32px; height: 4px; border-radius: 2px;
+  background: var(--md-on-surface-variant); opacity: 0.4;
+  margin: 0 auto 20px;
+}
+
+/* ── Hackathon banner ─────────────────────────────────────────────── */
+.hackathon-card {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative; overflow: hidden;
+}
+
+/* ── Avatar ──────────────────────────────────────────────────────── */
+.md-avatar {
+  width: 48px; height: 48px; border-radius: 999px;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 18px; flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DYNAMIC WEATHER PALETTES
+   Each overrides primary/secondary/surface tokens. Error + caution
+   tokens stay fixed (they represent risk, not weather).
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Transitions — applied to root so color shifts animate smoothly */
+html {
+  transition:
+    background-color 1.1s cubic-bezier(0.2,0,0,1),
+    color 0.9s cubic-bezier(0.2,0,0,1);
+}
+.app-shell, .md-top-bar, .md-nav-bar,
+.md-card-filled, .md-card-elevated, .md-card-outlined, .hackathon-card,
+.risk-safe, .risk-caution, .risk-danger,
+.md-btn-filled, .md-btn-tonal, .md-chip, .md-skeleton {
+  transition:
+    background-color 1.1s cubic-bezier(0.2,0,0,1),
+    border-color 0.9s cubic-bezier(0.2,0,0,1),
+    color 0.7s cubic-bezier(0.2,0,0,1),
+    box-shadow 0.3s ease;
+}
+
+/* ── Weather badge in top bar */
+.weather-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--md-surface-variant);
+  font-size: 12px; font-weight: 500; letter-spacing: 0.3px;
+  color: var(--md-on-surface-variant);
+  transition: background 1.1s cubic-bezier(0.2,0,0,1), color 0.7s ease;
+}
+
+/* ══════════════════════════════════════════
+   1. RAINY / DRIZZLE  — Cool blue
+   Seed: #0061A4
+   ══════════════════════════════════════════ */
+[data-weather="rain"] {
+  --md-primary: #0061A4; --md-on-primary: #fff;
+  --md-primary-container: #D2E4FF; --md-on-primary-container: #001D35;
+  --md-secondary: #4E616D; --md-on-secondary: #fff;
+  --md-secondary-container: #D1E5F4; --md-on-secondary-container: #0A1D27;
+  --md-tertiary: #3C6472; --md-on-tertiary: #fff;
+  --md-tertiary-container: #BFE9F8; --md-on-tertiary-container: #001F28;
+  --md-surface: #F5FAFE; --md-on-surface: #181C20;
+  --md-surface-variant: #DDE3EA; --md-on-surface-variant: #41474D;
+  --md-outline: #71787E; --md-outline-variant: #C0C7CE;
+  --md-surface-container-lowest: #fff;
+  --md-surface-container-low: #EFF4F9;
+  --md-surface-container: #E9F0F5;
+  --md-surface-container-high: #E3EAF0;
+  --md-surface-container-highest: #DDE4EB;
+}
+[data-weather="rain"][data-theme="dark"] {
+  --md-primary: #9DCAFF; --md-on-primary: #003258;
+  --md-primary-container: #004880; --md-on-primary-container: #D2E4FF;
+  --md-secondary: #B3CAD7; --md-on-secondary: #1D3440;
+  --md-secondary-container: #344B57; --md-on-secondary-container: #D1E5F4;
+  --md-tertiary: #A3CDD9; --md-on-tertiary: #00363F;
+  --md-tertiary-container: #1B4C58; --md-on-tertiary-container: #BFE9F8;
+  --md-surface: #181C20; --md-on-surface: #E1E2E6;
+  --md-surface-variant: #42474E; --md-on-surface-variant: #C2C7CE;
+  --md-outline: #8C9198; --md-outline-variant: #42474E;
+  --md-surface-container-lowest: #0D1015;
+  --md-surface-container-low: #181C20;
+  --md-surface-container: #1C2025;
+  --md-surface-container-high: #26292F;
+  --md-surface-container-highest: #31343A;
+}
+
+/* ══════════════════════════════════════════
+   2. THUNDERSTORM  — Deep purple / indigo
+   Seed: #6750A4
+   ══════════════════════════════════════════ */
+[data-weather="storm"] {
+  --md-primary: #5B21B6; --md-on-primary: #fff;
+  --md-primary-container: #E9DDFF; --md-on-primary-container: #21005D;
+  --md-secondary: #5E5871; --md-on-secondary: #fff;
+  --md-secondary-container: #E4DEF8; --md-on-secondary-container: #1A1229;
+  --md-tertiary: #7D4E7F; --md-on-tertiary: #fff;
+  --md-tertiary-container: #FFD6FC; --md-on-tertiary-container: #300836;
+  --md-surface: #FEFBFF; --md-on-surface: #1C1B1F;
+  --md-surface-variant: #E7E0EC; --md-on-surface-variant: #49454E;
+  --md-outline: #7A757F; --md-outline-variant: #CAC4D0;
+  --md-surface-container-lowest: #fff;
+  --md-surface-container-low: #F7F2FA;
+  --md-surface-container: #F1ECF4;
+  --md-surface-container-high: #EBE7EF;
+  --md-surface-container-highest: #E6E1E9;
+}
+[data-weather="storm"][data-theme="dark"] {
+  --md-primary: #CFBDFF; --md-on-primary: #381E72;
+  --md-primary-container: #4F378A; --md-on-primary-container: #E9DDFF;
+  --md-secondary: #CCC3DC; --md-on-secondary: #332D41;
+  --md-secondary-container: #4A4359; --md-on-secondary-container: #E4DEF8;
+  --md-tertiary: #F5B8F4; --md-on-tertiary: #4B204C;
+  --md-tertiary-container: #643765; --md-on-tertiary-container: #FFD6FC;
+  --md-surface: #1C1B1F; --md-on-surface: #E6E1E5;
+  --md-surface-variant: #49454E; --md-on-surface-variant: #CAC4D0;
+  --md-outline: #948F9A; --md-outline-variant: #49454E;
+  --md-surface-container-lowest: #0F0E13;
+  --md-surface-container-low: #1C1B1F;
+  --md-surface-container: #201F24;
+  --md-surface-container-high: #2B2930;
+  --md-surface-container-highest: #36343B;
+}
+
+/* ══════════════════════════════════════════
+   3. CLEAR / SUNNY  — Warm amber / gold
+   Seed: #F59E0B
+   ══════════════════════════════════════════ */
+[data-weather="clear"] {
+  --md-primary: #795900; --md-on-primary: #fff;
+  --md-primary-container: #FFDEA8; --md-on-primary-container: #251A00;
+  --md-secondary: #6D5D3F; --md-on-secondary: #fff;
+  --md-secondary-container: #F6DFBB; --md-on-secondary-container: #251A04;
+  --md-tertiary: #4E6440; --md-on-tertiary: #fff;
+  --md-tertiary-container: #D0EABC; --md-on-tertiary-container: #0D1F03;
+  --md-surface: #FFF8F2; --md-on-surface: #1F1B16;
+  --md-surface-variant: #EDE0CF; --md-on-surface-variant: #4E4538;
+  --md-outline: #7F7060; --md-outline-variant: #D0C4B4;
+  --md-surface-container-lowest: #fff;
+  --md-surface-container-low: #FAF2E9;
+  --md-surface-container: #F4EDE4;
+  --md-surface-container-high: #EFE7DE;
+  --md-surface-container-highest: #E9E1D8;
+}
+[data-weather="clear"][data-theme="dark"] {
+  --md-primary: #F2BE00; --md-on-primary: #3F2E00;
+  --md-primary-container: #5C4300; --md-on-primary-container: #FFDEA8;
+  --md-secondary: #D9C3A0; --md-on-secondary: #3A2E18;
+  --md-secondary-container: #52452D; --md-on-secondary-container: #F6DFBB;
+  --md-tertiary: #B4CE9F; --md-on-tertiary: #213517;
+  --md-tertiary-container: #384C2C; --md-on-tertiary-container: #D0EABC;
+  --md-surface: #1F1B16; --md-on-surface: #EAE1D9;
+  --md-surface-variant: #4E4538; --md-on-surface-variant: #D0C4B4;
+  --md-outline: #998F80; --md-outline-variant: #4E4538;
+  --md-surface-container-lowest: #130F0A;
+  --md-surface-container-low: #1F1B16;
+  --md-surface-container: #24201B;
+  --md-surface-container-high: #2E2A24;
+  --md-surface-container-highest: #39352F;
+}
+
+/* ══════════════════════════════════════════
+   4. CLOUDY / OVERCAST  — Steel blue-grey
+   Seed: #4A6572
+   ══════════════════════════════════════════ */
+[data-weather="clouds"] {
+  --md-primary: #2B6178; --md-on-primary: #fff;
+  --md-primary-container: #C2E8F9; --md-on-primary-container: #001F2B;
+  --md-secondary: #4E6571; --md-on-secondary: #fff;
+  --md-secondary-container: #D1E5F2; --md-on-secondary-container: #0A1D27;
+  --md-tertiary: #5A5B7C; --md-on-tertiary: #fff;
+  --md-tertiary-container: #E1DFFF; --md-on-tertiary-container: #171834;
+  --md-surface: #F5F9FC; --md-on-surface: #181C1F;
+  --md-surface-variant: #DBE5EC; --md-on-surface-variant: #40484D;
+  --md-outline: #70797E; --md-outline-variant: #BEC8CF;
+  --md-surface-container-lowest: #fff;
+  --md-surface-container-low: #EEF3F7;
+  --md-surface-container: #E8EDF1;
+  --md-surface-container-high: #E3E8EC;
+  --md-surface-container-highest: #DDE2E6;
+}
+[data-weather="clouds"][data-theme="dark"] {
+  --md-primary: #87D0EC; --md-on-primary: #003547;
+  --md-primary-container: #1B4C60; --md-on-primary-container: #C2E8F9;
+  --md-secondary: #B1C9D6; --md-on-secondary: #1B323E;
+  --md-secondary-container: #334A55; --md-on-secondary-container: #D1E5F2;
+  --md-tertiary: #C3C3EC; --md-on-tertiary: #2C2D4B;
+  --md-tertiary-container: #424363; --md-on-tertiary-container: #E1DFFF;
+  --md-surface: #181C1F; --md-on-surface: #E0E3E6;
+  --md-surface-variant: #40484D; --md-on-surface-variant: #BEC8CF;
+  --md-outline: #8A9297; --md-outline-variant: #40484D;
+  --md-surface-container-lowest: #0D1114;
+  --md-surface-container-low: #181C1F;
+  --md-surface-container: #1C2023;
+  --md-surface-container-high: #262A2D;
+  --md-surface-container-highest: #313538;
+}
+
+/* ══════════════════════════════════════════
+   5. HOT / HEAT / DUST  — Burnt orange
+   Seed: #C25700
+   ══════════════════════════════════════════ */
+[data-weather="hot"] {
+  --md-primary: #8B3A00; --md-on-primary: #fff;
+  --md-primary-container: #FFDBC8; --md-on-primary-container: #2F0E00;
+  --md-secondary: #7A5546; --md-on-secondary: #fff;
+  --md-secondary-container: #FFDBD0; --md-on-secondary-container: #2E150B;
+  --md-tertiary: #676015; --md-on-tertiary: #fff;
+  --md-tertiary-container: #EDE58D; --md-on-tertiary-container: #1F1C00;
+  --md-surface: #FFF8F5; --md-on-surface: #201A17;
+  --md-surface-variant: #F0DED6; --md-on-surface-variant: #524441;
+  --md-outline: #847370; --md-outline-variant: #D3BDB8;
+  --md-surface-container-lowest: #fff;
+  --md-surface-container-low: #FBF2EE;
+  --md-surface-container: #F5EDE9;
+  --md-surface-container-high: #F0E7E3;
+  --md-surface-container-highest: #EAE1DE;
+}
+[data-weather="hot"][data-theme="dark"] {
+  --md-primary: #FFB691; --md-on-primary: #4E1900;
+  --md-primary-container: #6E2900; --md-on-primary-container: #FFDBC8;
+  --md-secondary: #E7BDB0; --md-on-secondary: #44261D;
+  --md-secondary-container: #5E3C32; --md-on-secondary-container: #FFDBD0;
+  --md-tertiary: #D1CA6B; --md-on-tertiary: #363100;
+  --md-tertiary-container: #4E4900; --md-on-tertiary-container: #EDE58D;
+  --md-surface: #201A17; --md-on-surface: #EDE0DC;
+  --md-surface-variant: #524441; --md-on-surface-variant: #D3BDB8;
+  --md-outline: #9E8985; --md-outline-variant: #524441;
+  --md-surface-container-lowest: #130E0C;
+  --md-surface-container-low: #201A17;
+  --md-surface-container: #251E1B;
+  --md-surface-container-high: #2F2825;
+  --md-surface-container-highest: #3B3330;
+}
+
+/* ══════════════════════════════════════════
+   6. MIST / FOG / HAZE  — Sage grey-green
+   Seed: #4D6655
+   ══════════════════════════════════════════ */
+[data-weather="mist"] {
+  --md-primary: #3D6657; --md-on-primary: #fff;
+  --md-primary-container: #BFECDB; --md-on-primary-container: #00201A;
+  --md-secondary: #4D6359; --md-on-secondary: #fff;
+  --md-secondary-container: #CFECE3; --md-on-secondary-container: #092019;
+  --md-tertiary: #3F6475; --md-on-tertiary: #fff;
+  --md-tertiary-container: #C3E8F9; --md-on-tertiary-container: #001F2B;
+  --md-surface: #F4FAF7; --md-on-surface: #191C1B;
+  --md-surface-variant: #D9E5DF; --md-on-surface-variant: #3F4944;
+  --md-outline: #6F7975; --md-outline-variant: #BDC9C3;
+  --md-surface-container-lowest: #fff;
+  --md-surface-container-low: #EEF5F1;
+  --md-surface-container: #E8EEEB;
+  --md-surface-container-high: #E3E9E6;
+  --md-surface-container-highest: #DDE3E0;
+}
+[data-weather="mist"][data-theme="dark"] {
+  --md-primary: #84D5BB; --md-on-primary: #00382E;
+  --md-primary-container: #005044; --md-on-primary-container: #BFECDB;
+  --md-secondary: #B4CCC3; --md-on-secondary: #1F352E;
+  --md-secondary-container: #364C45; --md-on-secondary-container: #CFECE3;
+  --md-tertiary: #A8CCDE; --md-on-tertiary: #0D3444;
+  --md-tertiary-container: #274C5C; --md-on-tertiary-container: #C3E8F9;
+  --md-surface: #191C1B; --md-on-surface: #E0E4E1;
+  --md-surface-variant: #3F4944; --md-on-surface-variant: #BDC9C3;
+  --md-outline: #89938E; --md-outline-variant: #3F4944;
+  --md-surface-container-lowest: #0E1110;
+  --md-surface-container-low: #191C1B;
+  --md-surface-container: #1D201F;
+  --md-surface-container-high: #272A29;
+  --md-surface-container-highest: #323534;
+}
+
+/* ══════════════════════════════════════════
+   7. SNOW / SLEET / ICE  — Cool ice blue
+   Seed: #2B6190
+   ══════════════════════════════════════════ */
+[data-weather="snow"] {
+  --md-primary: #1B5F9A; --md-on-primary: #fff;
+  --md-primary-container: #D4E3FF; --md-on-primary-container: #001B3C;
+  --md-secondary: #52606E; --md-on-secondary: #fff;
+  --md-secondary-container: #D5E4F4; --md-on-secondary-container: #0E1D29;
+  --md-tertiary: #6A5779; --md-on-tertiary: #fff;
+  --md-tertiary-container: #F1DAFF; --md-on-tertiary-container: #241333;
+  --md-surface: #F7FBFF; --md-on-surface: #191C20;
+  --md-surface-variant: #DDE3ED; --md-on-surface-variant: #41484F;
+  --md-outline: #71787F; --md-outline-variant: #C0C7D0;
+  --md-surface-container-lowest: #fff;
+  --md-surface-container-low: #F1F6FB;
+  --md-surface-container: #EBF0F5;
+  --md-surface-container-high: #E5EAF0;
+  --md-surface-container-highest: #DFE4EA;
+}
+[data-weather="snow"][data-theme="dark"] {
+  --md-primary: #A4C8FF; --md-on-primary: #003063;
+  --md-primary-container: #00468D; --md-on-primary-container: #D4E3FF;
+  --md-secondary: #B9C8D7; --md-on-secondary: #23323F;
+  --md-secondary-container: #3A4956; --md-on-secondary-container: #D5E4F4;
+  --md-tertiary: #D7BDE7; --md-on-tertiary: #3B2849;
+  --md-tertiary-container: #534062; --md-on-tertiary-container: #F1DAFF;
+  --md-surface: #191C20; --md-on-surface: #E1E2E7;
+  --md-surface-variant: #41484F; --md-on-surface-variant: #C0C7D0;
+  --md-outline: #8B9198; --md-outline-variant: #41484F;
+  --md-surface-container-lowest: #0E1115;
+  --md-surface-container-low: #191C20;
+  --md-surface-container: #1D2025;
+  --md-surface-container-high: #272A2F;
+  --md-surface-container-highest: #32353A;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GLOBAL RISK PALETTES (Overrides weather when risk is elevated)
+   When the user's risk level is Caution or Danger, the entire UI 
+   turns Amber or Red to match the alert card, communicating urgency.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── CAUTION / MODERATE RISK (Amber Alert) ── */
+[data-risk="caution"] {
+  --md-primary: var(--md-caution);
+  --md-on-primary: var(--md-on-caution);
+  --md-primary-container: var(--md-caution-container);
+  --md-on-primary-container: var(--md-on-caution-container);
+  --md-secondary: #7A5919;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #FFDEA4;
+  --md-on-secondary-container: #261900;
+  --md-tertiary: #52643F;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #D4EABB;
+  --md-on-tertiary-container: #102004;
+  --md-surface: #FFF8F2;
+  --md-surface-variant: #EDE0CF;
+  --md-on-surface-variant: #4E4538;
+  --md-outline: #7F7060;
+  --md-outline-variant: #D0C4B4;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #FAF2E9;
+  --md-surface-container: #F4EDE4;
+  --md-surface-container-high: #EFE7DE;
+  --md-surface-container-highest: #E9E1D8;
+}
+
+[data-risk="caution"][data-theme="dark"] {
+  --md-primary: #FFB951;
+  --md-on-primary: #412D00;
+  --md-primary-container: #5C4100;
+  --md-on-primary-container: #FFDEAA;
+  --md-secondary: #E2C28C;
+  --md-on-secondary: #402D00;
+  --md-secondary-container: #5A4300;
+  --md-on-secondary-container: #FFDEA4;
+  --md-tertiary: #B8CEA1;
+  --md-on-tertiary: #253515;
+  --md-tertiary-container: #3B4C29;
+  --md-on-tertiary-container: #D4EABB;
+  --md-surface: #1F1B16;
+  --md-surface-variant: #4E4538;
+  --md-on-surface-variant: #D0C4B4;
+  --md-outline: #998F80;
+  --md-outline-variant: #4E4538;
+  --md-surface-container-lowest: #130F0A;
+  --md-surface-container-low: #1F1B16;
+  --md-surface-container: #24201B;
+  --md-surface-container-high: #2E2A24;
+  --md-surface-container-highest: #39352F;
+}
+
+/* ── DANGER / HIGH RISK (Red Alert) ── */
+[data-risk="danger"] {
+  --md-primary: var(--md-error);
+  --md-on-primary: var(--md-on-error);
+  --md-primary-container: var(--md-error-container);
+  --md-on-primary-container: var(--md-on-error-container);
+  --md-secondary: #904A43;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #FFDAD5;
+  --md-on-secondary-container: #3B0907;
+  --md-tertiary: #775A0B;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #FFE082;
+  --md-on-tertiary-container: #241A00;
+  --md-surface: #FFF8F7;
+  --md-surface-variant: #F4DDDF;
+  --md-on-surface-variant: #524344;
+  --md-outline: #857374;
+  --md-outline-variant: #D7C1C3;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #FFF0F0;
+  --md-surface-container: #FCEAE9;
+  --md-surface-container-high: #F6E4E4;
+  --md-surface-container-highest: #F0DFDE;
+}
+
+[data-risk="danger"][data-theme="dark"] {
+  --md-primary: #FFB4AB;
+  --md-on-primary: #690005;
+  --md-primary-container: #93000A;
+  --md-on-primary-container: #FFDAD6;
+  --md-secondary: #FFB3AC;
+  --md-on-secondary: #571E19;
+  --md-secondary-container: #73332D;
+  --md-on-secondary-container: #FFDAD5;
+  --md-tertiary: #EAC248;
+  --md-on-tertiary: #3F2E00;
+  --md-tertiary-container: #5A4300;
+  --md-on-tertiary-container: #FFE082;
+  --md-surface: #201A19;
+  --md-surface-variant: #524344;
+  --md-on-surface-variant: #D7C1C3;
+  --md-outline: #A08C8D;
+  --md-outline-variant: #524344;
+  --md-surface-container-lowest: #140C0B;
+  --md-surface-container-low: #201A19;
+  --md-surface-container: #251D1C;
+  --md-surface-container-high: #2B2221;
+  --md-surface-container-highest: #362C2B;
+}
+
