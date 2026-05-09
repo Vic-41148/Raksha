@@ -52,7 +52,7 @@ function getWeatherState(condition: string, tempC: number): WeatherState {
 }
 
 // ── Weather emoji for badge ────────────────────────────────────────
-export function getWeatherEmoji(state: WeatherState, condition: string): string {
+export function getWeatherEmoji(state: WeatherState, _condition: string): string {
   const emojiMap: Record<WeatherState, string> = {
     rain:    '🌧️',
     storm:   '⛈️',
