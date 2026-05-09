@@ -23,6 +23,7 @@ wheels/
 backend/venv/
 backend/raksha.db
 backend/.env
+.env
 
 # Node
 node_modules/
