@@ -58,7 +58,7 @@ export function CreditsTab() {
       <div>
         <p className="md-label-large" style={{ color: 'var(--md-on-surface-variant)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Source</p>
         <div className="md-card-outlined" style={{ overflow: 'hidden' }}>
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer"
+          <a href="https://github.com/Vic-41148/Raksha" target="_blank" rel="noopener noreferrer"
             style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
           >
             <div className="md-list-item">
