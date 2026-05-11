@@ -11,7 +11,7 @@ One daily safety decision based on hyperlocal flood/heat/storm risk.
 
 ## Hackathon Info
 - **Event**: WeatherWise Hack
-- **Team Code**: XXX-523
+- **Team Code**: WWH-RHV8D6
 - **Mandatory Statement**: Made for WeatherWise Hack
 
 ## Installation

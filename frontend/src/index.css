@@ -379,6 +379,27 @@ body {
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
+/* On desktop, remove the mobile shell constraints */
+@media (min-width: 768px) {
+  .app-shell {
+    max-width: none !important;
+    margin-left: 72px !important;
+    width: calc(100vw - 72px) !important;
+    margin-right: 0;
+  }
+  .tab-content {
+    padding-top: 32px !important;
+    padding-bottom: 40px !important;
+    padding-left: 40px;
+    padding-right: 40px;
+    max-width: 960px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    overflow-y: visible;
+  }
+}
+
 /* ── Risk State Colors ───────────────────────────────────────────── */
 .risk-safe    { background: var(--md-primary-container); color: var(--md-on-primary-container); }
 .risk-caution { background: var(--md-caution-container); color: var(--md-on-caution-container); }
@@ -885,3 +906,216 @@ html {
   --md-surface-container-highest: #362C2B;
 }
 
+
+/* ════════════════════════════════════════════════════════════════════
+   DESKTOP LAYOUT
+   ════════════════════════════════════════════════════════════════════ */
+
+.desktop-root {
+  display: flex;
+  min-height: 100dvh;
+  background: var(--md-surface);
+}
+.md-nav-rail { display: none; }
+
+/* ── Auth screens ─────────────────────────────────────────────────── */
+.auth-page {
+  min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px 20px;
+  background: var(--md-surface);
+  width: 100%;
+}
+.auth-card {
+  width: 100%; max-width: 440px;
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 40px 36px 36px;
+  background: var(--md-surface-container-low);
+  border-radius: 28px;
+  border: 1px solid var(--md-outline-variant);
+  box-shadow: var(--md-elevation-2);
+}
+
+/* ── Mobile ───────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .app-shell   { max-width: 100%; width: 100%; }
+  .md-top-bar  { max-width: 100%; left: 0; transform: none; }
+  .md-nav-bar  { max-width: 100%; left: 0; transform: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DESKTOP ≥ 768px
+   ══════════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  .desktop-root { flex-direction: row; }
+
+  /* Sidebar */
+  .md-nav-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 72px;
+    position: fixed; top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    background: var(--md-surface-container);
+    border-right: 1px solid var(--md-outline-variant);
+    padding: 20px 8px 24px;
+    box-sizing: border-box;
+    overflow: hidden;
+    transition: width 0.25s cubic-bezier(0.2,0,0,1),
+                background-color 1.1s cubic-bezier(0.2,0,0,1);
+  }
+  .md-nav-rail:hover { width: 220px; }
+
+  /* Logo pill */
+  .nav-rail-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    padding: 0 10px;
+    border-radius: 12px;
+    background: var(--md-primary-container);
+    margin-bottom: 20px;
+    overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .nav-rail-brand {
+    color: var(--md-on-primary-container);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+  }
+  .md-nav-rail:hover .nav-rail-brand { opacity: 1; }
+
+  /* Nav items container */
+  .nav-rail-items {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+  }
+
+  /* Each nav item */
+  .nav-rail-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 44px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-on-surface-variant);
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: background 0.18s, color 0.18s;
+    position: relative;
+    text-align: left;
+  }
+  .nav-rail-item::after {
+    content: '';
+    position: absolute; inset: 0; border-radius: inherit;
+    background: currentColor; opacity: 0;
+    transition: opacity 0.15s; pointer-events: none;
+  }
+  .nav-rail-item:hover::after  { opacity: 0.08; }
+  .nav-rail-item:active::after { opacity: 0.12; }
+  .nav-rail-item.active {
+    background: var(--md-secondary-container);
+    color: var(--md-on-secondary-container);
+  }
+
+  /* Icon wrapper — fixed 24px, always centred in the 44px height */
+  .nav-rail-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  /* Label — hidden until rail expands */
+  .nav-rail-label {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .md-nav-rail:hover .nav-rail-label { opacity: 1; }
+
+  /* Footer */
+  .nav-rail-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding-top: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .rail-weather {
+    font-size: 10px; padding: 3px 6px;
+    text-align: center; white-space: nowrap;
+    max-width: 56px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .md-nav-rail:hover .rail-weather   { max-width: 180px; }
+  .md-nav-rail:hover .nav-rail-footer { align-items: flex-start; padding-left: 10px; }
+
+  /* Main content */
+  .app-shell {
+    margin-left: 72px;
+    flex: 1;
+    min-height: 100dvh;
+    width: calc(100vw - 72px);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+  .tab-content {
+    flex: 1;
+    padding: 32px 40px 40px;
+    max-width: 920px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+
+  /* Hide mobile chrome */
+  .md-top-bar { display: none !important; }
+  .md-nav-bar { display: none !important; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   WIDE DESKTOP ≥ 1280px — rail pinned open
+   ══════════════════════════════════════════════════════════════════ */
+@media (min-width: 1280px) {
+  .md-nav-rail { width: 220px; }
+  .md-nav-rail .nav-rail-label { opacity: 1; }
+  .md-nav-rail .nav-rail-brand { opacity: 1; }
+  .md-nav-rail .nav-rail-footer { align-items: flex-start; padding-left: 10px; }
+  .md-nav-rail .rail-weather    { max-width: 180px; }
+
+  .app-shell {
+    margin-left: 220px;
+    width: calc(100vw - 220px);
+  }
+}
+
+/* Typing dots animation */
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%       { opacity: 1;   transform: scale(1.1); }
+}

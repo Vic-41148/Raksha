@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { RefreshCw, ChevronDown, CheckCircle, AlertTriangle, Phone, Share2, Droplets, Wind, Thermometer, Gauge, Clock, MapPin } from 'lucide-react'
+import { RefreshCw, ChevronDown, CheckCircle, AlertTriangle, Phone, Share2, Droplets, Wind, Thermometer, Gauge, Clock, MapPin, Copy, MessageCircle, X } from 'lucide-react'
 import type { RiskData, RiskLevel, HelplineData, UserConfig } from '../App'
 import axios from 'axios'
 
@@ -61,6 +61,44 @@ interface Props {
   error: string | null; lastUpdated: Date | null; onRefresh: () => void;
 }
 
+function buildExplanation(riskData: RiskData, config: UserConfig): string {
+  const w = riskData.weather
+  const parts: string[] = []
+
+  // Primary driver
+  const condition = w.condition.toLowerCase()
+  if (w.rainfall_mm >= 20)
+    parts.push(`Heavy rainfall of ${w.rainfall_mm} mm is the main risk factor, significantly raising flood potential.`)
+  else if (w.rainfall_mm >= 5)
+    parts.push(`Moderate rainfall (${w.rainfall_mm} mm) is contributing to elevated risk.`)
+  else if (condition.includes('mist') || condition.includes('haze') || condition.includes('smoke') || condition.includes('fog'))
+    parts.push(`Poor air quality (${w.condition}) is the primary concern today, reducing visibility and increasing respiratory risk.`)
+  else if (w.wind_speed_kmh >= 60)
+    parts.push(`Strong winds at ${w.wind_speed_kmh.toFixed(1)} km/h are the dominant hazard.`)
+  else if (w.temp_c >= 40)
+    parts.push(`Extreme heat (${w.temp_c}°C) is the primary driver — heat stress risk is high.`)
+  else if (riskData.historical_risk && riskData.historical_details?.zone_name)
+    parts.push(`Your location falls within or near the "${riskData.historical_details.zone_name}" historical disaster zone, which raises the baseline risk even during calm weather.`)
+  else
+    parts.push(`Current conditions (${w.condition}, ${w.temp_c}°C, ${w.humidity_pct}% humidity) present a low immediate threat.`)
+
+  // Secondary factor
+  if (riskData.elevation_m < 50)
+    parts.push(`Your low elevation (${riskData.elevation_m} m) makes the area more susceptible to waterlogging and flash floods.`)
+  else if (w.humidity_pct >= 80 && w.rainfall_mm < 5)
+    parts.push(`High humidity (${w.humidity_pct}%) combined with ${w.condition.toLowerCase()} conditions can worsen air quality and heat discomfort.`)
+
+  // Household amplifier
+  const both = config.kids_present && config.elderly_present
+  const one  = config.kids_present || config.elderly_present
+  if (both)
+    parts.push(`Because children and elderly are present, the risk score is amplified by ×1.6 — giving a final score of ${riskData.score}/10.`)
+  else if (one)
+    parts.push(`The score is raised by ×1.4 due to ${config.kids_present ? 'children' : 'elderly'} in your household, reaching ${riskData.score}/10.`)
+
+  return parts.join(' ')
+}
+
 export function SafetyTab({ config, riskData, loading, error, lastUpdated, onRefresh }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
@@ -85,18 +123,24 @@ export function SafetyTab({ config, riskData, loading, error, lastUpdated, onRef
   const handleHelpline = async () => {
     if (!helplineData) {
       try {
-        const r = await fetch(`/api/helplines?country=${encodeURIComponent(config.country)}`)
+        // Prefer GPS-detected country code from risk data
+        const countryHint = riskData?.country_code || config.country ||
+          (navigator.language.includes('-') ? navigator.language.split('-')[1] : '') || 'default'
+        const r = await fetch(`/api/helplines?country=${encodeURIComponent(countryHint)}`)
         setHelplineData(await r.json())
-      } catch { /* show default */ }
+      } catch { /* use default */ }
     }
     setShowSheet(true)
   }
 
-  const handleShare = async () => {
-    if (!riskData) return
-    const text = `🛡️ Raksha: ${riskData.decision}`
-    if (navigator.share) { try { await navigator.share({ title: 'Raksha', text }) } catch { /**/ } }
-    else { try { await navigator.clipboard.writeText(text) } catch { /**/ } }
+  const [showShare, setShowShare] = useState(false)
+
+  const handleShare = () => { if (riskData) setShowShare(true) }
+
+  const shareText = () => {
+    if (!riskData) return ''
+    const loc = config.city && config.country ? `${config.city}, ${config.country}` : config.city || config.country || 'my area'
+    return `\u{1F6E1}\uFE0F Raksha Safety Update\n${riskData.risk_level} (${riskData.score}/10) in ${loc}\n${riskData.weather.condition}, ${riskData.weather.temp_c}\u00B0C\n\n${riskData.decision}\n\nStay safe — checked via Raksha app.`
   }
 
   const level = riskData?.risk_level
@@ -115,8 +159,13 @@ export function SafetyTab({ config, riskData, loading, error, lastUpdated, onRef
   if (error && error !== 'offline' && !riskData) return (
     <div style={{ padding: 24, textAlign: 'center', paddingTop: 80 }}>
       <AlertTriangle size={48} color="var(--md-error)" style={{ marginBottom: 16 }} />
-      <p className="md-title-medium" style={{ marginBottom: 8 }}>Something went wrong</p>
-      <p className="md-body-medium" style={{ color: 'var(--md-on-surface-variant)', marginBottom: 24 }}>{error}</p>
+      <p className="md-title-medium" style={{ marginBottom: 8 }}>Can't reach the server</p>
+      <p className="md-body-medium" style={{ color: 'var(--md-on-surface-variant)', marginBottom: 8 }}>
+        Make sure the backend is running, then try again.
+      </p>
+      <p className="md-body-small" style={{ color: 'var(--md-outline)', marginBottom: 24 }}>
+        Tip: run <code style={{ background: 'var(--md-surface-container)', padding: '2px 6px', borderRadius: 4 }}>./run.sh</code> from the project root.
+      </p>
       <button className="md-btn md-btn-tonal" onClick={onRefresh}>Try again</button>
     </div>
   )
@@ -127,7 +176,9 @@ export function SafetyTab({ config, riskData, loading, error, lastUpdated, onRef
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
         <MapPin size={16} color="var(--md-primary)" />
         <span className="md-body-medium" style={{ color: 'var(--md-on-surface-variant)', flex: 1 }}>
-          {config.city}, {config.country}
+          {config.city && config.country
+            ? `${config.city}, ${config.country}`
+            : config.city || config.country || 'Current location (GPS)'}
         </span>
         {lastUpdated && (
           <span className="md-label-small" style={{ color: 'var(--md-outline)', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -177,6 +228,18 @@ export function SafetyTab({ config, riskData, loading, error, lastUpdated, onRef
 
             {expanded && (
               <div style={{ padding: '0 20px 20px' }}>
+                {/* Natural language explanation */}
+                <p className="md-body-medium" style={{
+                  margin: '0 0 16px',
+                  lineHeight: 1.7,
+                  color: 'var(--md-on-surface-variant)',
+                  padding: '12px 14px',
+                  background: 'var(--md-surface-container)',
+                  borderRadius: 10,
+                }}>
+                  {buildExplanation(riskData, config)}
+                </p>
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   {[
                     { icon: <Droplets size={16} color="var(--md-tertiary)" />, label: 'Rainfall', val: `${riskData.weather.rainfall_mm} mm` },
@@ -242,6 +305,127 @@ export function SafetyTab({ config, riskData, loading, error, lastUpdated, onRef
           onClose={() => setShowSheet(false)}
         />
       )}
+
+      {showShare && riskData && (
+        <ShareModal riskData={riskData} config={config} text={shareText()} onClose={() => setShowShare(false)} />
+      )}
     </div>
   )
 }
+
+/* ── Share Modal ─────────────────────────────────────────────────── */
+function ShareModal({ riskData, config, text, onClose }: {
+  riskData: RiskData; config: UserConfig; text: string; onClose: () => void
+}) {
+  const [copied, setCopied] = useState(false)
+  const encoded = encodeURIComponent(text)
+  const loc = config.city && config.country
+    ? `${config.city}, ${config.country}`
+    : config.city || config.country || 'Current location'
+
+  const copyText = async () => {
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {/**/}
+  }
+
+  const riskColor = riskData.risk_level === 'DANGER'
+    ? 'var(--md-error-container)' : riskData.risk_level === 'CAUTION'
+    ? 'var(--md-caution-container)' : 'var(--md-primary-container)'
+  const riskOnColor = riskData.risk_level === 'DANGER'
+    ? 'var(--md-on-error-container)' : riskData.risk_level === 'CAUTION'
+    ? 'var(--md-on-caution-container)' : 'var(--md-on-primary-container)'
+
+  const APPS = [
+    { name: 'WhatsApp',  emoji: '💬', color: '#25D366', url: `https://wa.me/?text=${encoded}` },
+    { name: 'Telegram',  emoji: '✈️',  color: '#2AABEE', url: `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encoded}` },
+    { name: 'Twitter/X', emoji: '🐦', color: '#000',    url: `https://twitter.com/intent/tweet?text=${encoded}` },
+  ]
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div style={{
+        background: 'var(--md-surface-container-low)',
+        borderRadius: '28px 28px 0 0',
+        width: '100%', maxWidth: 560,
+        padding: '12px 20px 32px',
+        animation: 'slideUp 0.28s cubic-bezier(0.2,0,0,1)',
+      }}>
+        {/* Handle + close */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, position: 'relative' }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--md-outline-variant)' }} />
+          <button onClick={onClose} style={{ position: 'absolute', right: 0, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--md-on-surface-variant)', padding: 4 }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <p className="md-title-medium" style={{ margin: '0 0 16px' }}>Share safety status</p>
+
+        {/* Preview card */}
+        <div style={{
+          background: riskColor, color: riskOnColor,
+          borderRadius: 20, padding: '16px 18px', marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+            <div>
+              <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.7 }}>{riskData.risk_level}</p>
+              <p style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{riskData.score}/10</p>
+            </div>
+            <p style={{ margin: 0, fontSize: 22 }}>
+              {riskData.risk_level === 'DANGER' ? '🚨' : riskData.risk_level === 'CAUTION' ? '⚠️' : '✅'}
+            </p>
+          </div>
+          <p style={{ margin: '0 0 4px', fontSize: 13, opacity: 0.85 }}>📍 {loc}</p>
+          <p style={{ margin: '0 0 8px', fontSize: 13, opacity: 0.85 }}>☁️ {riskData.weather.condition}, {riskData.weather.temp_c}°C</p>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, fontStyle: 'italic', opacity: 0.9 }}>{riskData.decision}</p>
+        </div>
+
+        {/* App share buttons */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+          {APPS.map(app => (
+            <a key={app.name} href={app.url} target="_blank" rel="noopener noreferrer"
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                padding: '12px 8px', borderRadius: 16, textDecoration: 'none',
+                background: 'var(--md-surface-container)',
+                border: '1px solid var(--md-outline-variant)',
+                color: 'var(--md-on-surface)',
+                transition: 'transform 0.15s',
+              }}
+              onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.04)')}
+              onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              <span style={{ fontSize: 24 }}>{app.emoji}</span>
+              <span style={{ fontSize: 11, fontWeight: 500 }}>{app.name}</span>
+            </a>
+          ))}
+        </div>
+
+        {/* Secondary actions */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={copyText} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            height: 48, borderRadius: 999, border: '1px solid var(--md-outline-variant)',
+            background: 'var(--md-surface-container)', color: 'var(--md-on-surface)',
+            cursor: 'pointer', fontSize: 14, fontWeight: 500,
+          }}>
+            {copied ? <><CheckCircle size={16} color="var(--md-primary)" /> Copied!</> : <><Copy size={16} /> Copy text</>}
+          </button>
+          {navigator.share && (
+            <button onClick={() => { navigator.share({ title: 'Raksha — Safety Update', text, url: window.location.href }).catch(()=>{}) }} style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              height: 48, borderRadius: 999, border: 'none',
+              background: 'var(--md-primary)', color: 'var(--md-on-primary)',
+              cursor: 'pointer', fontSize: 14, fontWeight: 500,
+            }}>
+              <Share2 size={16} /> More apps
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+

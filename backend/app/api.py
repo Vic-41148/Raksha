@@ -33,6 +33,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
+    context: Optional[str] = ""  # injected by frontend with live risk/weather/user data
 
 
 # ── Emergency helpline database ──────────────────────────────────────
@@ -185,6 +186,8 @@ async def get_weather(lat: float, lon: float):
         "description": data.get("weather", [{}])[0].get("description", ""),
         "feels_like": data.get("main", {}).get("feels_like", 25.0),
         "pressure": data.get("main", {}).get("pressure", 1013),
+        "city_name": data.get("name", ""),
+        "country_code": data.get("sys", {}).get("country", ""),
     }
 
 
@@ -269,7 +272,9 @@ async def get_risk(request: RiskRequest):
         "elevation_m": elevation["elevation_m"],
         "historical_risk": is_historical_risk,
         "historical_details": hist_details,
-        "nearby_zones": nearby_zones[:3],  # Top 3 nearest zones
+        "nearby_zones": nearby_zones[:3],
+        "city_name": weather.get("city_name", ""),
+        "country_code": weather.get("country_code", ""),
     }
 
 
@@ -319,15 +324,29 @@ async def confirm_safe(request: SafeConfirmRequest):
 
 # ── Helplines endpoint ───────────────────────────────────────────────
 
+# ISO 3166-1 alpha-2 → helpline key mapping
+ISO_TO_HELPLINE = {
+    "IN": "india", "US": "usa", "GB": "uk", "AU": "australia",
+    "NG": "nigeria", "BD": "bangladesh", "PH": "philippines",
+    "MM": "myanmar", "VN": "vietnam", "TH": "thailand",
+    "NP": "nepal", "PK": "pakistan", "BR": "brazil", "MX": "mexico",
+}
+
 @router.get("/helplines")
 async def get_helplines(country: str = ""):
-    country_key = country.lower().strip()
+    country_key = country.strip()
 
-    # Try exact match first
+    # Check ISO code first (e.g. 'IN', 'US')
+    if country_key.upper() in ISO_TO_HELPLINE:
+        return HELPLINES[ISO_TO_HELPLINE[country_key.upper()]]
+
+    country_key = country_key.lower()
+
+    # Exact key match
     if country_key in HELPLINES:
         return HELPLINES[country_key]
 
-    # Try partial match
+    # Partial name match
     for key, data in HELPLINES.items():
         if key != "default" and (key in country_key or country_key in key):
             return data
@@ -396,7 +415,12 @@ async def chat_endpoint(request: ChatRequest):
     
     system_prompt = {
         "role": "system",
-        "content": "You are Raksha, an AI safety and disaster-preparedness assistant. Keep responses extremely concise (1-3 sentences max), supportive, and focused on safety, emergency prep, or first aid. Do not use markdown like bolding or lists unless necessary."
+        "content": (
+            "You are Raksha, an AI safety and disaster-preparedness assistant. "
+            "Keep responses concise (2-4 sentences), supportive, and focused on safety, "
+            "emergency prep, or first aid. Do not use markdown bolding or bullet lists."
+            + (f"\n\nCurrent user context:\n{request.context}" if request.context else "")
+        )
     }
     
     messages = [system_prompt] + [{"role": m.role, "content": m.content} for m in request.messages]

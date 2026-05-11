@@ -19,7 +19,7 @@ export function ZonesTab({ riskData, config }: Props) {
       <div style={{ marginBottom: 24 }}>
         <h2 className="md-headline-small" style={{ margin: '0 0 4px', fontWeight: 400 }}>Risk Zones</h2>
         <p className="md-body-medium" style={{ margin: 0, color: 'var(--md-on-surface-variant)' }}>
-          Historical disaster zones near {config.city}
+          Historical disaster zones near {config.city || 'your location'}
         </p>
       </div>
 
@@ -33,7 +33,9 @@ export function ZonesTab({ riskData, config }: Props) {
             <div>
               <p className="md-title-medium" style={{ margin: 0 }}>Your Location</p>
               <p className="md-body-small" style={{ margin: 0, color: 'var(--md-on-surface-variant)' }}>
-                {config.city}, {config.country}
+                {config.city && config.country
+                  ? `${config.city}, ${config.country}`
+                  : config.city || config.country || 'Current location (GPS)'}
               </p>
             </div>
             <span className={`md-chip md-label-medium ${chipClass(riskData.risk_level)}`} style={{ marginLeft: 'auto' }}>

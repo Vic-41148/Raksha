@@ -1,4 +1,4 @@
-import { Shield, Zap, Cloud, Code2, Brain, Award, Heart, GitBranch } from 'lucide-react'
+import { Shield, Zap, Cloud, Code2, Brain, Heart, GitBranch } from 'lucide-react'
 
 const TECH = [
   { icon: <Brain size={20} color="var(--md-primary)" />, name: 'Groq LLaMA 3.3-70b', desc: 'AI-powered daily decisions' },
@@ -10,25 +10,6 @@ const TECH = [
 export function CreditsTab() {
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 32 }}>
-
-      {/* Hackathon card */}
-      <div className="hackathon-card anim-fade-up">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Award size={18} />
-          <span className="md-label-medium" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.8 }}>
-            Official Entry
-          </span>
-        </div>
-        <h2 className="md-headline-small" style={{ margin: '0 0 4px', fontWeight: 500 }}>WeatherWise Hack</h2>
-        <p className="md-body-medium" style={{ margin: '0 0 16px', opacity: 0.75 }}>
-          Team Code: <strong>XXX-523</strong>
-        </p>
-        <span className="md-chip md-label-medium" style={{
-          background: 'rgba(0,0,0,0.12)', border: 'none', color: 'currentColor'
-        }}>
-          <Shield size={14} /> Made for WeatherWise Hack
-        </span>
-      </div>
 
       {/* About */}
       <div>
@@ -96,10 +77,7 @@ export function CreditsTab() {
       {/* Footer */}
       <div style={{ textAlign: 'center', paddingTop: 8 }}>
         <p className="md-body-small" style={{ color: 'var(--md-outline)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-          Made with <Heart size={12} color="var(--md-error)" /> for WeatherWise Hack
-        </p>
-        <p className="md-label-small" style={{ color: 'var(--md-outline-variant)', marginTop: 4, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          Raksha v1.0 · Team XXX-523
+          Made with <Heart size={12} color="var(--md-error)" /> for WeatherWise Hack · WWH-RHV8D6
         </p>
       </div>
     </div>

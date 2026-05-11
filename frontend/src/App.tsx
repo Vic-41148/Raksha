@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
-import { Home, MapPin, Settings, Star, MessageCircle } from 'lucide-react'
+import { Home, MapPin, Settings, Star, MessageCircle, Shield } from 'lucide-react'
 
 import { SafetyTab } from './tabs/SafetyTab'
 import { ZonesTab } from './tabs/ZonesTab'
@@ -24,6 +24,8 @@ export interface RiskData {
   historical_risk?: boolean;
   historical_details?: { zone_name?: string; nearest_zone?: string; distance_km?: number }
   nearby_zones?: { zone_name: string; risk_type: string; distance_km: number }[]
+  city_name?: string;
+  country_code?: string;
 }
 export interface HelplineData {
   country: string; emergency: string; disaster: string;
@@ -31,6 +33,7 @@ export interface HelplineData {
 }
 export interface UserConfig {
   kids_present: boolean; elderly_present: boolean; city: string; country: string;
+  displayName?: string;
 }
 export interface GoogleUser {
   name: string; email: string; picture: string; sub: string;
@@ -149,6 +152,17 @@ function AppInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ── Push notification helper ──────────────────────────────────
+  const fireRiskNotification = (data: RiskData) => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return
+    if (data.risk_level === 'SAFE') return
+    const title = data.risk_level === 'DANGER' ? '🚨 High Risk Alert — Raksha' : '⚠️ Caution — Raksha'
+    const body  = data.decision || (data.risk_level === 'DANGER'
+      ? 'High risk detected in your area. Stay indoors.'
+      : 'Moderate risk in your area. Stay prepared.')
+    new Notification(title, { body, icon: '/favicon.svg', tag: 'raksha-risk' })
+  }
+
   const getRiskData = async (lat: number, lon: number, cfg: UserConfig) => {
     try {
       const res = await fetch('/api/risk', {
@@ -161,12 +175,27 @@ function AppInner() {
       setRiskData(data)
       setLastUpdated(new Date())
       setError(null)
+      // Auto-populate city/country from GPS detection
+      if (data.city_name || data.country_code) {
+        const updatedCfg: UserConfig = {
+          ...cfg,
+          city:    data.city_name    || cfg.city,
+          country: data.country_code || cfg.country,
+        }
+        setConfig(updatedCfg)
+        localStorage.setItem('raksha_config', JSON.stringify(updatedCfg))
+      }
       localStorage.setItem('raksha_last_data', JSON.stringify(data))
       localStorage.setItem('raksha_last_updated', new Date().toISOString())
+      fireRiskNotification(data)
     } catch {
       const cached = localStorage.getItem('raksha_last_data')
-      if (cached) { setRiskData(JSON.parse(cached)); setError('offline') }
-      else setError('Could not connect. Check your connection.')
+      if (cached) {
+        setRiskData(JSON.parse(cached))
+        setError('offline')
+      } else {
+        setError('no-backend')
+      }
     } finally {
       setLoading(false)
     }
@@ -219,44 +248,87 @@ function AppInner() {
     : null
 
   return (
-    <div className="app-shell">
-      {/* Top app bar */}
-      <header className="md-top-bar">
-        <span className="md-title-large" style={{ flex: 1, fontWeight: 500 }}>Raksha</span>
-        {weatherLabel && (
-          <span className="weather-badge" style={{ marginRight: 8 }}>
-            {weatherLabel}
-          </span>
-        )}
-        {error === 'offline' && (
-          <span className="md-chip md-chip-assist md-label-small" style={{ marginRight: 8 }}>Offline</span>
-        )}
-        {user.picture
-          ? <img src={user.picture} alt={user.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
-          : <div className="md-avatar" style={{ width: 36, height: 36, fontSize: 14 }}>{user.name?.[0]}</div>
-        }
-      </header>
+    <div className="desktop-root">
+      {/* ── Desktop sidebar nav rail ── */}
+      <aside className="md-nav-rail">
+        <div className="nav-rail-logo">
+          <Shield size={22} color="var(--md-on-primary-container)" />
+          <span className="md-title-small nav-rail-brand">Raksha</span>
+        </div>
 
-      {/* Tab content */}
-      <main className="tab-content">
-        {tab === 'safety'   && <SafetyTab config={config} riskData={riskData} loading={loading} error={error} lastUpdated={lastUpdated} onRefresh={() => fetchRisk(config)} />}
-        {tab === 'zones'    && <ZonesTab riskData={riskData} config={config} />}
-        {tab === 'chat'     && <ChatTab />}
-        {tab === 'settings' && <SettingsTab user={user} config={config} theme={theme} onUpdate={handleUpdate} onLogout={handleLogout} onToggleTheme={toggleTheme} />}
-        {tab === 'credits'  && <CreditsTab />}
-      </main>
+        <div className="nav-rail-items">
+          {navItems.map(({ id, icon: Icon, label }) => (
+            <button key={id} className={`nav-rail-item ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>
+              <div className="nav-rail-indicator">
+                <Icon size={20} strokeWidth={tab === id ? 2.5 : 1.8} />
+              </div>
+              <span className="md-label-small nav-rail-label">{label}</span>
+            </button>
+          ))}
+        </div>
 
-      {/* Bottom nav */}
-      <nav className="md-nav-bar">
-        {navItems.map(({ id, icon: Icon, label }) => (
-          <button key={id} className={`md-nav-item ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>
-            <div className="md-nav-indicator">
-              <Icon size={22} strokeWidth={tab === id ? 2.5 : 1.8} />
+        <div className="nav-rail-footer">
+          {weatherLabel && <span className="weather-badge rail-weather">{weatherLabel}</span>}
+          {error === 'offline' && <span className="md-chip md-chip-assist md-label-small">Offline</span>}
+          <button
+            onClick={() => setTab('settings')}
+            title={user.name}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              padding: '4px 0', width: '100%', overflow: 'hidden',
+            }}
+          >
+            {user.picture
+              ? <img src={user.picture} alt={user.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+              : <div className="md-avatar" style={{ width: 36, height: 36, fontSize: 14, flexShrink: 0 }}>{user.name?.[0]}</div>
+            }
+            <div className="nav-rail-label" style={{ textAlign: 'left', overflow: 'hidden' }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--md-on-surface)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</p>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--md-on-surface-variant)', whiteSpace: 'nowrap' }}>Settings</p>
             </div>
-            <span className="md-nav-label">{label}</span>
           </button>
-        ))}
-      </nav>
+        </div>
+      </aside>
+
+      {/* ── Main panel ── */}
+      <div className="app-shell">
+        {/* Top app bar — mobile only */}
+        <header className="md-top-bar">
+          <span className="md-title-large" style={{ flex: 1, fontWeight: 500 }}>Raksha</span>
+          {weatherLabel && (
+            <span className="weather-badge" style={{ marginRight: 8 }}>{weatherLabel}</span>
+          )}
+          {error === 'offline' && (
+            <span className="md-chip md-chip-assist md-label-small" style={{ marginRight: 8 }}>Offline</span>
+          )}
+          {user.picture
+            ? <img src={user.picture} alt={user.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+            : <div className="md-avatar" style={{ width: 36, height: 36, fontSize: 14 }}>{user.name?.[0]}</div>
+          }
+        </header>
+
+        {/* Tab content */}
+        <main className="tab-content">
+          {tab === 'safety'   && <SafetyTab config={config} riskData={riskData} loading={loading} error={error} lastUpdated={lastUpdated} onRefresh={() => fetchRisk(config)} />}
+          {tab === 'zones'    && <ZonesTab riskData={riskData} config={config} />}
+          {tab === 'chat'     && <ChatTab riskData={riskData} config={config} user={user} />}
+          {tab === 'settings' && <SettingsTab user={user} config={config} theme={theme} onUpdate={handleUpdate} onLogout={handleLogout} onToggleTheme={toggleTheme} />}
+          {tab === 'credits'  && <CreditsTab />}
+        </main>
+
+        {/* Bottom nav — mobile only */}
+        <nav className="md-nav-bar">
+          {navItems.map(({ id, icon: Icon, label }) => (
+            <button key={id} className={`md-nav-item ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>
+              <div className="md-nav-indicator">
+                <Icon size={22} strokeWidth={tab === id ? 2.5 : 1.8} />
+              </div>
+              <span className="md-nav-label">{label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
     </div>
   )
 }
